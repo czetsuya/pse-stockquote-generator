@@ -44,12 +44,9 @@ public class StockQuotePdfReader {
 			stripper.setStartPage(p);
 			stripper.setEndPage(p);
 
-			// let the magic happen
 			String text = stripper.getText(document);
 
 			result.addAll(readPage(text));
-
-			// break;
 		}
 
 		document.close();
@@ -63,10 +60,7 @@ public class StockQuotePdfReader {
 		List<String> result = new ArrayList<>();
 		BufferedReader reader = new BufferedReader(new StringReader(text));
 		reader.lines().skip(3).filter(e -> !e.toLowerCase().contains("name symbol")
-				&& !e.toLowerCase().equals("buying/(selling),") && !e.toLowerCase().equals("net foreign"))
-				.forEach(line -> {
-					result.add(line);
-				});
+				&& !e.equalsIgnoreCase("buying/(selling),") && !e.equalsIgnoreCase("net foreign")).forEach(result::add);
 
 		return result;
 	}

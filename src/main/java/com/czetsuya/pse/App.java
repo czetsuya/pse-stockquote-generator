@@ -38,5 +38,6 @@ public class App {
 		List<StockQuote> result = stockQuoteExtractor.extract(lines);
 
 		// write to a csv file
+//		result.forEach(System.out::println);
 	}
 }

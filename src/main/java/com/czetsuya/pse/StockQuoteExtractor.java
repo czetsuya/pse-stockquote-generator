@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.text.WordUtils;
 
 public class StockQuoteExtractor {
 
@@ -19,19 +20,21 @@ public class StockQuoteExtractor {
 	private List<StockQuote> extractSectorGroup(List<String> lines) {
 
 		SectorEnum currentSector = SectorEnum.FINANCIALS;
+		String subSector = "";
 		List<StockQuote> result = new ArrayList<>();
 
 		int lineProcessorIndex = -1;
 		for (int i = 0; i < lines.size(); i++) {
 			String currentLine = lines.get(i);
-			String subSector = "";
 
 			if (SectorEnum.contains(currentLine)) {
 				currentSector = SectorEnum.findSector(currentLine);
-				lineProcessorIndex = -1;
+				System.out.println("\nProcessing sector=" + currentSector + " line ===> " + currentLine);
+				lineProcessorIndex = i + 1;
 
 			} else {
 				if (currentLine.startsWith("****")) {
+					subSector = StringUtils.substringsBetween(currentLine, "****", "****")[0];
 					if (lineProcessorIndex == -1) {
 						lineProcessorIndex = i + 1;
 
@@ -41,11 +44,13 @@ public class StockQuoteExtractor {
 						lineProcessorIndex = i + 1;
 					}
 
-					subSector = StringUtils.substringsBetween(currentLine, "****", "****")[0];
-					// System.out.println("=======>" + currentSector.formatSectorName() + " - " +
-					// subSector);
+					System.out.println("=======>" + currentSector.formatSectorName() + " - " + subSector);
 
 				} else if (currentLine.toLowerCase().contains("sector total")) {
+					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
+
+				} else if (currentLine.toLowerCase()
+						.contains(currentSector.getSectorName().toLowerCase().concat(" total"))) {
 					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
 				}
 			}
@@ -67,8 +72,8 @@ public class StockQuoteExtractor {
 			if (sq == null) {
 				continue;
 			}
-			sq.setSector(currentSector);
-			sq.setSubSector(subSector);
+			sq.setSector(WordUtils.capitalizeFully(currentSector.formatSectorName()));
+			sq.setSubSector(WordUtils.capitalizeFully(subSector.trim()));
 
 			result.add(sq);
 		}
@@ -78,16 +83,27 @@ public class StockQuoteExtractor {
 
 	private StockQuote extractQuoteFromLine(String line) {
 
+		System.out.println("processing line=" + line);
+
+		if (line.contains("SMC FB PREF")) {
+			int i = 0;
+		}
+
 		String[] splittedLine = StringUtils.split(line, " ");
 		int stockIndex = 0;
-		for (int i = 0; i < splittedLine.length; i++) {
+		for (int i = splittedLine.length - 1; i > 0; i--) {
 			// remove the , character in string
 			// check if the column contains "-", it means an empty number field
 			// why not just put 0?
-			if (i != 0 && (NumberUtils.isCreatable(StringUtils.remove(splittedLine[i], ","))
-					|| splittedLine[i].equals("-"))) {
-				stockIndex = i - 1;
-				break;
+			String cellValue = splittedLine[i];
+			if (StringUtils.isNotEmpty(cellValue)) {
+				cellValue = StringUtils.remove(splittedLine[i], ",");
+				cellValue = StringUtils.remove(cellValue, "(");
+				cellValue = StringUtils.remove(cellValue, ")");
+				if (!cellValue.equals("-") && !NumberUtils.isCreatable(cellValue)) {
+					stockIndex = i;
+					break;
+				}
 			}
 		}
 
@@ -100,7 +116,7 @@ public class StockQuoteExtractor {
 
 		line = line.stream().map(StockQuoteExtractor::removeAllChars).collect(Collectors.toList());
 
-		StockQuote sq = StockQuote.builder().symbol(line.get(0)) //
+		return StockQuote.builder().symbol(line.get(0)) //
 				.bid(parseNumber(line.get(1))) //
 				.ask(parseNumber(line.get(2))) //
 				.open(parseNumber(line.get(3))) //
@@ -111,8 +127,6 @@ public class StockQuoteExtractor {
 				.value(parseNumber(line.get(8))) //
 				.foreignSellingOrBuying(parseNumber(line.get(9))) //
 				.build(); //
-
-		return sq;
 	}
 
 	private static BigDecimal parseNumber(String input) {
@@ -147,7 +161,7 @@ public class StockQuoteExtractor {
 
 	public SectorEnum getParentSector(List<String> lines, int currentRow) {
 
-		SectorEnum currentSector = SectorEnum.FINANCIALS;
+		SectorEnum currentSector;
 		String previousLine = lines.get(currentRow - 1);
 		if (SectorEnum.contains(previousLine)) {
 			currentSector = SectorEnum.findSector(previousLine);

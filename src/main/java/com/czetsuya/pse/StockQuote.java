@@ -16,7 +16,7 @@ import lombok.ToString;
 @ToString
 public class StockQuote {
 
-	private SectorEnum sector;
+	private String sector;
 	private String subSector;
 	private String symbol;
 	private BigDecimal bid;
