@@ -33,6 +33,7 @@ public class StockQuote {
 	private BigDecimal volume;
 	private BigDecimal value;
 	private BigDecimal foreignSellingOrBuying;
+	private BigDecimal percentChange;
 
 	public void addAsk(BigDecimal val) {
 		if (ask == null) {

@@ -1,6 +1,7 @@
 package com.czetsuya.pse;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -22,7 +23,7 @@ public class StockQuotePdfReader {
 
 		List<String> result = new ArrayList<>();
 
-		InputStream is = App.class.getClassLoader().getResourceAsStream(filename);
+		InputStream is = new FileInputStream(filename);
 
 		PDDocument document = PDDocument.load(is);
 		AccessPermission ap = document.getCurrentAccessPermission();

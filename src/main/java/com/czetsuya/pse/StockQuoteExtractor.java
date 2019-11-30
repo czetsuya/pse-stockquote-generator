@@ -47,7 +47,7 @@ public class StockQuoteExtractor {
 					currentSector = SectorEnum.findSector(currentLine);
 					lineProcessorIndex = i + 1;
 
-					System.out.println("\n------------------->Processing sector " + currentSector.getSectorName());
+					System.out.println("\n===>Processing sector " + currentSector.getSectorName());
 
 					if (lines.get(i + 1).contains("****")) {
 						state = 1;
@@ -60,6 +60,20 @@ public class StockQuoteExtractor {
 					subSector = getSubSector(currentLine);
 					lineProcessorIndex = i + 1;
 					state = 1;
+
+				} else if (StringUtils.deleteWhitespace(currentLine).toLowerCase().contains("sectoralsummary")) {
+					lineProcessorIndex = i + 2;
+					state = 3;
+
+				} else if (currentLine.toLowerCase().startsWith("foreign buying")) {
+					System.out
+							.println("\n===>Foreign buying=" + currentLine.substring(currentLine.indexOf("Php") + 4));
+
+				} else if (currentLine.toLowerCase().startsWith("foreign selling")) {
+					state = 100;
+					System.out.println(
+							"\n===>Foreign selling=" + currentLine.substring(currentLine.indexOf("Php") + 4));
+
 				}
 				break;
 
@@ -67,7 +81,7 @@ public class StockQuoteExtractor {
 				if (currentLine.startsWith("****")) {
 					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
 					subSector = getSubSector(currentLine);
-					System.out.println("\n------------------->Processing sub sector " + subSector);
+					System.out.println("\n===>Processing sub sector " + subSector);
 					lineProcessorIndex = i + 1;
 
 				} else if (currentLine.toLowerCase().contains("sector total")) {
@@ -80,7 +94,7 @@ public class StockQuoteExtractor {
 				if (currentLine.startsWith("****")) {
 					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
 					subSector = getSubSector(currentLine);
-					System.out.println("\n------------------->Processing sub sector " + subSector);
+					System.out.println("\n===>Processing sub sector " + subSector);
 					lineProcessorIndex = i + 1;
 					state = 1;
 
@@ -91,13 +105,64 @@ public class StockQuoteExtractor {
 				}
 				break;
 
+			case 3:
+				if (currentLine.toLowerCase().contains("grand total")) {
+					result.addAll(extractSectorQuote(lines.subList(lineProcessorIndex, i)));
+					state = 0;
+				}
+				break;
+			case 100:
+				break;
 			default:
 				break;
 			}
 
 		}
 
-		computeSector(result);
+		return result;
+	}
+
+	private List<StockQuote> extractSectorQuote(List<String> lines) {
+
+		List<StockQuote> result = new ArrayList<>();
+		lines.forEach(line -> {
+			String[] lineArr = StringUtils.split(line, " ");
+
+			if (SectorEnum.containsSectorFromSummary(lineArr[0])) {
+
+				SectorEnum sector = SectorEnum.findSectorFromSummary(lineArr[0]);
+
+				StockQuote sq;
+
+				if (sector != SectorEnum.PSEI && sector != SectorEnum.ALLSHARES) {
+					sq = StockQuote.builder() //
+							.symbol(sector.getCsvName()) //
+							.open(parseNumber(lineArr[1])) //
+							.high(parseNumber(lineArr[2])) //
+							.low(parseNumber(lineArr[3])) //
+							.close(parseNumber(lineArr[4])) //
+							.percentChange(parseNumber(lineArr[5])) //
+							.volume(parseNumber(lineArr[6])) //
+							.value(parseNumber(lineArr[7])) //
+							.build();
+
+				} else {
+					sq = StockQuote.builder() //
+							.symbol(sector.getCsvName()) //
+							.open(parseNumber(lineArr[1])) //
+							.high(parseNumber(lineArr[2])) //
+							.low(parseNumber(lineArr[3])) //
+							.close(parseNumber(lineArr[4])) //
+							.percentChange(parseNumber(lineArr[5])) //
+							.build();
+				}
+
+				sq.setSector(sector.getCsvName());
+				sq.setSubSector(sector.getCsvName());
+
+				result.add(sq);
+			}
+		});
 
 		return result;
 	}
@@ -110,6 +175,7 @@ public class StockQuoteExtractor {
 		return sum.divide(new BigDecimal(stockQuotes.size()), RoundingMode.HALF_DOWN);
 	}
 
+	@SuppressWarnings("unused")
 	private StockQuote computeAverage(List<StockQuote> stockQuotes) {
 
 		StockQuote sq = new StockQuote();
@@ -121,23 +187,44 @@ public class StockQuoteExtractor {
 		return sq;
 	}
 
+	private StockQuote addStockQuote(List<StockQuote> stockQuotes) {
+
+		StockQuote sq = new StockQuote();
+		stockQuotes.stream().forEach(e -> {
+			sq.addStockQuote(e);
+		});
+
+		return sq;
+	}
+
+	@SuppressWarnings("unused")
 	private void computeSector(List<StockQuote> stockQuotes) {
 
 		List<StockQuote> sectorQuotes = new ArrayList<>();
+
+		StockQuote pseiQuote = new StockQuote();
+		pseiQuote.setSector("^PSEI");
+		pseiQuote.setSubSector("^PSEI");
+		pseiQuote.setSymbol("^PSEI");
 
 		Map<String, List<StockQuote>> groupedSq = stockQuotes.stream()
 				.collect(Collectors.groupingBy(StockQuote::getSector));
 
 		groupedSq.entrySet().forEach(e -> {
 			SectorEnum sectorEnum = SectorEnum.findSector(e.getKey());
-			StockQuote sq = computeAverage(e.getValue());
-			sq.setSector(sectorEnum.getSectorName());
-			sq.setSubSector(sectorEnum.getSectorName());
-			sq.setSymbol(sectorEnum.getCsvName());
-			sectorQuotes.add(sq);
+			if (sectorEnum.isToProcess()) {
+				StockQuote sq = addStockQuote(e.getValue());
+				sq.setSector(sectorEnum.getSectorName());
+				sq.setSubSector(sectorEnum.getSectorName());
+				sq.setSymbol(sectorEnum.getCsvName());
+				sectorQuotes.add(sq);
+
+				pseiQuote.addStockQuote(sq);
+			}
 		});
 
 		stockQuotes.addAll(sectorQuotes);
+		stockQuotes.add(pseiQuote);
 	}
 
 	private List<StockQuote> extractStockQuote(SectorEnum currentSector, String subSector, List<String> lines) {
@@ -164,8 +251,6 @@ public class StockQuoteExtractor {
 
 	private StockQuote extractQuoteFromLine(String line) {
 
-		System.out.println("Processing line=" + line);
-
 		String[] splittedLine = StringUtils.split(line, " ");
 		int stockIndex = 0;
 		for (int i = splittedLine.length - 1; i > 0; i--) {
@@ -191,8 +276,6 @@ public class StockQuoteExtractor {
 
 	private StockQuote buildStockQuote(List<String> line) {
 
-		line = line.stream().map(StockQuoteExtractor::removeAllChars).collect(Collectors.toList());
-
 		return StockQuote.builder().symbol(line.get(0)) //
 				.bid(parseNumber(line.get(1))) //
 				.ask(parseNumber(line.get(2))) //
@@ -208,9 +291,14 @@ public class StockQuoteExtractor {
 
 	private static BigDecimal parseNumber(String input) {
 
+		if (StringUtils.isBlank(input) || input.equals("-")) {
+			return BigDecimal.ZERO;
+		}
+
 		BigDecimal result = new BigDecimal(0);
 		try {
-			return StringUtils.isBlank(input) ? new BigDecimal(0) : new BigDecimal(input);
+			input = removeAllChars(input);
+			return new BigDecimal(input);
 
 		} catch (NumberFormatException e) {
 			System.out.println(e.getMessage());
@@ -228,10 +316,7 @@ public class StockQuoteExtractor {
 		}
 
 		// if contains * then negate
-		if (str.contains("(") && str.contains(")")) {
-			str = StringUtils.substringBetween(str, "(", ")");
-			str = "-" + str;
-		}
+		str = com.czetsuya.pse.utils.StringUtils.negate(str);
 
 		return str;
 	}
