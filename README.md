@@ -11,7 +11,7 @@ Copy the pdf that you wanted to parse in the same directory. Run the application
 To run the application execute:
 
 ```
-java -jar pse-extractor-0.0.1-SNAPSHOT-jar-with-dependencies
+java -jar pse-extractor-<version>-jar-with-dependencies
 ```
 
 ## Authors
