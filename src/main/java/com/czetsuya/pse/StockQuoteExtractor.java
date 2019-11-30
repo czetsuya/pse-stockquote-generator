@@ -1,20 +1,32 @@
 package com.czetsuya.pse;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.commons.lang3.text.WordUtils;
+import org.apache.commons.text.WordUtils;
 
+/**
+ * @author Edward P. Legaspi | czetsuya@gmail.com
+ * @since 0.0.1
+ * @version 0.0.1
+ */
 public class StockQuoteExtractor {
 
 	public List<StockQuote> extract(List<String> lines) {
 
 		return extractSectorGroup(lines);
+	}
+
+	private String getSubSector(String currentLine) {
+		return StringUtils.substringsBetween(currentLine, "****", "****")[0];
 	}
 
 	private List<StockQuote> extractSectorGroup(List<String> lines) {
@@ -24,39 +36,108 @@ public class StockQuoteExtractor {
 		List<StockQuote> result = new ArrayList<>();
 
 		int lineProcessorIndex = -1;
+		int state = 0;
+
 		for (int i = 0; i < lines.size(); i++) {
 			String currentLine = lines.get(i);
 
-			if (SectorEnum.contains(currentLine)) {
-				currentSector = SectorEnum.findSector(currentLine);
-				System.out.println("\nProcessing sector=" + currentSector + " line ===> " + currentLine);
-				lineProcessorIndex = i + 1;
+			switch (state) {
+			case 0:
+				if (SectorEnum.contains(currentLine)) {
+					currentSector = SectorEnum.findSector(currentLine);
+					lineProcessorIndex = i + 1;
 
-			} else {
-				if (currentLine.startsWith("****")) {
-					subSector = StringUtils.substringsBetween(currentLine, "****", "****")[0];
-					if (lineProcessorIndex == -1) {
-						lineProcessorIndex = i + 1;
+					System.out.println("\n------------------->Processing sector " + currentSector.getSectorName());
+
+					if (lines.get(i + 1).contains("****")) {
+						state = 1;
 
 					} else {
-						result.addAll(
-								extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
-						lineProcessorIndex = i + 1;
+						state = 2;
 					}
 
-					System.out.println("=======>" + currentSector.formatSectorName() + " - " + subSector);
+				} else if (currentLine.startsWith("****")) {
+					subSector = getSubSector(currentLine);
+					lineProcessorIndex = i + 1;
+					state = 1;
+				}
+				break;
+
+			case 1:
+				if (currentLine.startsWith("****")) {
+					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
+					subSector = getSubSector(currentLine);
+					System.out.println("\n------------------->Processing sub sector " + subSector);
+					lineProcessorIndex = i + 1;
 
 				} else if (currentLine.toLowerCase().contains("sector total")) {
 					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
-
-				} else if (currentLine.toLowerCase()
-						.contains(currentSector.getSectorName().toLowerCase().concat(" total"))) {
-					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
+					state = 0;
 				}
+				break;
+
+			case 2:
+				if (currentLine.startsWith("****")) {
+					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
+					subSector = getSubSector(currentLine);
+					System.out.println("\n------------------->Processing sub sector " + subSector);
+					lineProcessorIndex = i + 1;
+					state = 1;
+
+				} else if (currentLine.toLowerCase().contains("total")
+						&& currentLine.toLowerCase().contains("volume")) {
+					result.addAll(extractStockQuote(currentSector, subSector, lines.subList(lineProcessorIndex, i)));
+					state = 0;
+				}
+				break;
+
+			default:
+				break;
 			}
+
 		}
 
+		computeSector(result);
+
 		return result;
+	}
+
+	@SuppressWarnings("unused")
+	private BigDecimal average(List<StockQuote> stockQuotes, Function<StockQuote, BigDecimal> mapper) {
+
+		BigDecimal sum = stockQuotes.stream().collect(Collectors.reducing(BigDecimal.ZERO, mapper, BigDecimal::add));
+
+		return sum.divide(new BigDecimal(stockQuotes.size()), RoundingMode.HALF_DOWN);
+	}
+
+	private StockQuote computeAverage(List<StockQuote> stockQuotes) {
+
+		StockQuote sq = new StockQuote();
+		stockQuotes.stream().forEach(e -> {
+			sq.addStockQuote(e);
+			sq.computeAverage(stockQuotes.size());
+		});
+
+		return sq;
+	}
+
+	private void computeSector(List<StockQuote> stockQuotes) {
+
+		List<StockQuote> sectorQuotes = new ArrayList<>();
+
+		Map<String, List<StockQuote>> groupedSq = stockQuotes.stream()
+				.collect(Collectors.groupingBy(StockQuote::getSector));
+
+		groupedSq.entrySet().forEach(e -> {
+			SectorEnum sectorEnum = SectorEnum.findSector(e.getKey());
+			StockQuote sq = computeAverage(e.getValue());
+			sq.setSector(sectorEnum.getSectorName());
+			sq.setSubSector(sectorEnum.getSectorName());
+			sq.setSymbol(sectorEnum.getCsvName());
+			sectorQuotes.add(sq);
+		});
+
+		stockQuotes.addAll(sectorQuotes);
 	}
 
 	private List<StockQuote> extractStockQuote(SectorEnum currentSector, String subSector, List<String> lines) {
@@ -83,11 +164,7 @@ public class StockQuoteExtractor {
 
 	private StockQuote extractQuoteFromLine(String line) {
 
-		System.out.println("processing line=" + line);
-
-		if (line.contains("SMC FB PREF")) {
-			int i = 0;
-		}
+		System.out.println("Processing line=" + line);
 
 		String[] splittedLine = StringUtils.split(line, " ");
 		int stockIndex = 0;

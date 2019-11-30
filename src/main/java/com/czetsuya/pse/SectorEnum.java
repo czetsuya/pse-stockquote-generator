@@ -15,31 +15,30 @@ import lombok.Getter;
 @Getter
 public enum SectorEnum {
 
-	FINANCIALS("Financials"), //
-	INDUSTRIAL("Industrial"), //
-	HOLDING("HoldingFirms"), //
-	PROPERTY("Property"), //
-	SERVICES("Services"), //
-	MINING("Mining&Oil"), //
-	PREFERRED("Preferred"), //
-	PHILDEPOSITARY("PhilDepositaryReceipts"), //
-	WARRANTS("Warrants"), //
-	SMALLMEDIUMEMERGING("SmallMedium&Emerging"), //
-	EXCHANGETRADEDFUNDS("ExchangeTradedFunds"), //
-	DOLLARDENOMINATED("DollarDenominatedSecurities");
+	FINANCIALS("Financials", "^FINANCIAL"), //
+	INDUSTRIAL("Industrial", "^INDUSTRIAL"), //
+	HOLDING("HoldingFirms", "^HOLDING"), //
+	PROPERTY("Property", "^PROPERTY"), //
+	SERVICES("Services", "^SERVICE"), //
+	MINING("Mining&Oil", "^MINING-OIL"), //
+	PREFERRED("Preferred", "^PREFERRED"), //
+	PHILDEPOSITARY("Phil.DepositaryReceipts", "^PHILDEPO"), //
+	WARRANTS("Warrants", "^WARRANTS"), //
+	SMALLMEDIUMEMERGING("Small,Medium&Emerging", "^SMALLMEDIUMEMERGING"), //
+	EXCHANGETRADEDFUNDS("ExchangeTradedFunds", "^EXCHANGETRADED"), //
+	DOLLARDENOMINATED("DollarDenominatedSecurities", "^DOLLAR");
 
 	private String sectorName;
+	private String csvName;
 
-	private SectorEnum(String sectorName) {
+	private SectorEnum(String sectorName, String csvName) {
 		this.sectorName = sectorName;
+		this.csvName = csvName;
 	}
 
 	public static boolean contains(String param) {
 
 		param = StringUtils.deleteWhitespace(param);
-		param = StringUtils.remove(param, ".");
-		param = StringUtils.remove(param, ",");
-
 		final String finalParam = param;
 
 		return Stream.of(SectorEnum.values())
@@ -49,8 +48,6 @@ public enum SectorEnum {
 	public static SectorEnum findSector(String param) {
 
 		param = StringUtils.deleteWhitespace(param);
-		param = StringUtils.remove(param, ".");
-		param = StringUtils.remove(param, ",");
 
 		final String finalParam = param;
 
