@@ -116,6 +116,9 @@ public class App {
 						.println(subSector + " " + formatter.format(subSectorTotal)));
 
 		System.out.println("\nPrinting the stockQuotes");
+
+		result = result.stream().filter(e -> e.getClose().compareTo(BigDecimal.ZERO) != 0).collect(Collectors.toList());
+
 		CsvStockWriter csvStockWriter = new CsvStockWriter();
 		csvStockWriter.write(date, result);
 	}
