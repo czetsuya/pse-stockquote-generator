@@ -7,7 +7,7 @@
 
 	<groupId>com.czetsuya</groupId>
 	<artifactId>pse-extractor</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.2.Final</version>
 
 	<name>pse-extractor</name>
 	<url>https://github.com/czetsuya/pse-stockquote-generator</url>
