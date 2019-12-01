@@ -28,7 +28,7 @@ public enum SectorEnum {
 	EXCHANGETRADEDFUNDS("ExchangeTradedFunds", "^EXCHANGETRADED", "Exchange Traded Funds", false), //
 	DOLLARDENOMINATED("DollarDenominatedSecurities", "^DOLLAR", "Dollar Denominated", false), //
 	PSEI("PSEI", "^PSEI", "PSEi", false), //
-	ALLSHARES("ALLSHARES", "^ALLSHARES", "All Shares", false);
+	ALLSHARES("ALLSHARES", "^ALLSHARES", "All", false);
 
 	private String sectorName;
 	private String csvName;

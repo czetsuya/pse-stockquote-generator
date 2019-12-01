@@ -66,13 +66,12 @@ public class StockQuoteExtractor {
 					state = 3;
 
 				} else if (currentLine.toLowerCase().startsWith("foreign buying")) {
-					System.out
-							.println("\n===>Foreign buying=" + currentLine.substring(currentLine.indexOf("Php") + 4));
+					System.out.println("\n===>Foreign buying=" + currentLine.substring(currentLine.indexOf("Php") + 4));
 
 				} else if (currentLine.toLowerCase().startsWith("foreign selling")) {
 					state = 100;
-					System.out.println(
-							"\n===>Foreign selling=" + currentLine.substring(currentLine.indexOf("Php") + 4));
+					System.out
+							.println("\n===>Foreign selling=" + currentLine.substring(currentLine.indexOf("Php") + 4));
 
 				}
 				break;
@@ -134,7 +133,7 @@ public class StockQuoteExtractor {
 
 				StockQuote sq;
 
-				if (sector != SectorEnum.PSEI && sector != SectorEnum.ALLSHARES) {
+				if (sector == SectorEnum.PSEI || sector == SectorEnum.ALLSHARES) {
 					sq = StockQuote.builder() //
 							.symbol(sector.getCsvName()) //
 							.open(parseNumber(lineArr[1])) //
@@ -142,8 +141,6 @@ public class StockQuoteExtractor {
 							.low(parseNumber(lineArr[3])) //
 							.close(parseNumber(lineArr[4])) //
 							.percentChange(parseNumber(lineArr[5])) //
-							.volume(parseNumber(lineArr[6])) //
-							.value(parseNumber(lineArr[7])) //
 							.build();
 
 				} else {
@@ -154,6 +151,8 @@ public class StockQuoteExtractor {
 							.low(parseNumber(lineArr[3])) //
 							.close(parseNumber(lineArr[4])) //
 							.percentChange(parseNumber(lineArr[5])) //
+							.volume(parseNumber(lineArr[7])) //
+							.value(parseNumber(lineArr[8])) //
 							.build();
 				}
 
@@ -285,7 +284,6 @@ public class StockQuoteExtractor {
 				.close(parseNumber(line.get(6))) //
 				.volume(parseNumber(line.get(7))) //
 				.value(parseNumber(line.get(8))) //
-				.foreignSellingOrBuying(parseNumber(line.get(9))) //
 				.build(); //
 	}
 
@@ -309,10 +307,14 @@ public class StockQuoteExtractor {
 
 	private static String removeAllChars(String str) {
 
-		String forbidden = ",-";
+		String forbidden = ",";
 		for (int i = 0; i < forbidden.length(); i++) {
 			char c = forbidden.charAt(i);
 			str = StringUtils.remove(str, c);
+		}
+
+		if (str.equals("-")) {
+			str = "";
 		}
 
 		// if contains * then negate
