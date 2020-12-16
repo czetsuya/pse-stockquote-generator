@@ -19,8 +19,8 @@ java -jar pse-extractor-<version>-jar-with-dependencies
 ```
 ## User Guide
 
-https://www.czetsuyatech.com/2019/12/pse-stockquote-to-amibroker.html
-Video Presentation: https://youtu.be/lMqNfCUa_cs
+- https://www.czetsuyatech.com/2019/12/pse-stockquote-to-amibroker.html
+- Video Presentation: https://youtu.be/lMqNfCUa_cs
 
 ## Authors
 
