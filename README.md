@@ -17,6 +17,9 @@ To run the application execute:
 ```
 java -jar pse-extractor-<version>-jar-with-dependencies
 ```
+## Usage Guide
+
+https://www.czetsuyatech.com/2019/12/pse-stockquote-to-amibroker.html
 
 ## Authors
 
