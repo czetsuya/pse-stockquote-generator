@@ -6,11 +6,12 @@
 
 # Philippine Stock Exchange Daily Stock Quote Generator
 
-A utility application that converts Philippine Stock Exchange daily stock quote pdf file into csv format that can be consume by Amibroker and other 3rd party graphing software.
+A utility application that converts Philippine Stock Exchange daily stock quote pdf file into csv format that can be 
+consumed by Amibroker and other 3rd party graphing software.
 
 ## Usage
 
-To run the application download the latest release zipped file from Github. Extract in a local directory.
+To run the application download the latest release zipped file from GitHub. Extract in a local directory.
 
 Copy the pdf that you wanted to parse in the same directory. Run the application and the csv files will be generated.
 
@@ -21,9 +22,5 @@ java -jar pse-extractor-<version>-jar-with-dependencies
 ```
 ## User Guide
 
-- https://www.czetsuyatech.com/2019/12/pse-stockquote-to-amibroker.html
+- https://www.czetsuyatech.com/2021/07/how-to-install-amibroker-for-pse.html
 - Video Presentation: https://youtu.be/lMqNfCUa_cs
-
-## Authors
-
- * **Edward P. Legaspi** - *Java Architect* - [czetsuya](https://github.com/czetsuya)
