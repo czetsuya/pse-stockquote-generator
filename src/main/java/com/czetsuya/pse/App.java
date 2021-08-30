@@ -13,113 +13,119 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.time.DateUtils;
 
 /**
  * <p>
- * This utility will parse all the stock quotes in the same directory where this
- * application is run too.
+ * This utility will parse all the stock quotes in the same directory where this application is run too.
  * </p>
  * <p>
  * It will output the csv stock quote format file in the same directory.
  * </p>
- * 
+ *
  * @author Edward P. Legaspi | czetsuya@gmail.com
+ * @version 0.0.3
  * @since 0.0.1
- * @version 0.0.1
  */
 public class App {
 
-	public static void main(String[] args) {
+  public static void main(String[] args) {
 
-		try {
-			App app = new App();
+    try {
+      App app = new App();
 
-			List<File> files = app.init();
+      List<File> files = app.init();
 
-			app.processFiles(files);
+      app.processFiles(files);
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
-		System.out.println("Fin");
-	}
+    System.out.println("Fin");
+  }
 
-	private void processFiles(List<File> files) {
+  private void processFiles(List<File> files) {
 
-		files.forEach(t -> {
-			try {
-				execute(t);
+    files.forEach(t -> {
+      try {
+        execute(t);
 
-			} catch (IOException | ParseException e) {
-				e.printStackTrace();
-			}
-		});
-	}
+      } catch (IOException | ParseException e) {
+        e.printStackTrace();
+      }
+    });
+  }
 
-	private List<File> init() {
+  private List<File> init() {
 
-		String workingDir = System.getProperty("user.dir");
+    String workingDir = System.getProperty("user.dir");
 
-		File dir = new File(workingDir);
-		FileFilter fileFilter = new WildcardFileFilter("*.pdf");
-		File[] files = dir.listFiles(fileFilter);
+    File dir = new File(workingDir);
+    FileFilter fileFilter = new WildcardFileFilter("*.pdf");
+    File[] files = dir.listFiles(fileFilter);
 
-		return Arrays.asList(files);
-	}
+    return Arrays.asList(files);
+  }
 
-	public void execute(File file) throws IOException, ParseException {
+  public void execute(File file) throws IOException, ParseException {
 
-		String fileName = file.getName();
-		fileName = FilenameUtils.removeExtension(fileName);
-		String strDate = fileName.split("_")[1];
-		Date date = DateUtils.parseDate(strDate, com.czetsuya.pse.utils.DateUtils.DATE_FORMAT_IO);
+    String fileName = file.getName();
+    fileName = FilenameUtils.removeExtension(fileName);
+    String strDate;
 
-		StockQuotePdfReader stockQuotePdfReader = new StockQuotePdfReader();
-		List<String> lines = stockQuotePdfReader.readDoc(file.getCanonicalPath());
+    try {
+      strDate = fileName.split("_")[1];
 
-		StockQuoteExtractor stockQuoteExtractor = new StockQuoteExtractor();
-		List<StockQuote> result = stockQuoteExtractor.extract(lines);
+    } catch (Exception e) {
+      strDate = fileName.split("-")[1];
+    }
 
-		Map<String, Map<String, List<StockQuote>>> x = result.stream()
-				.collect(Collectors.groupingBy(StockQuote::getSector, Collectors.groupingBy(StockQuote::getSubSector)));
+    Date date = DateUtils.parseDate(strDate, com.czetsuya.pse.utils.DateUtils.DATE_FORMAT_IO);
 
-		System.out.println("\n");
-		for (Entry<String, Map<String, List<StockQuote>>> entry1 : x.entrySet()) {
-			for (Entry<String, List<StockQuote>> entry2 : entry1.getValue().entrySet()) {
-				for (StockQuote sq : entry2.getValue()) {
-					System.out.println(entry1.getKey() + "." + entry2.getKey() + "=" + sq.getSymbol() + " "
-							+ sq.getVolume() + " " + sq.getValue());
-				}
-			}
-		}
+    StockQuotePdfReader stockQuotePdfReader = new StockQuotePdfReader();
+    List<String> lines = stockQuotePdfReader.readDoc(file.getCanonicalPath());
 
-		// write to a csv file
-		NumberFormat formatter = NumberFormat.getCurrencyInstance();
+    StockQuoteExtractor stockQuoteExtractor = new StockQuoteExtractor();
+    List<StockQuote> result = stockQuoteExtractor.extract(lines);
 
-		System.out.println("\nVolume Summary");
-		result.stream().filter(e -> !Objects.isNull(e.getVolume()))
-				.collect(Collectors.groupingBy(StockQuote::getSector,
-						Collectors.reducing(BigDecimal.ZERO, StockQuote::getVolume, BigDecimal::add)))
-				.forEach((subSector, subSectorTotal) -> System.out
-						.println(subSector + " " + formatter.format(subSectorTotal)));
+    Map<String, Map<String, List<StockQuote>>> x = result.stream()
+        .collect(Collectors.groupingBy(StockQuote::getSector, Collectors.groupingBy(StockQuote::getSubSector)));
 
-		System.out.println("\nValue Summary");
-		result.stream().filter(e -> !Objects.isNull(e.getValue()))
-				.collect(Collectors.groupingBy(StockQuote::getSector,
-						Collectors.reducing(BigDecimal.ZERO, StockQuote::getValue, BigDecimal::add)))
-				.forEach((subSector, subSectorTotal) -> System.out
-						.println(subSector + " " + formatter.format(subSectorTotal)));
+    System.out.println("\n");
+    for (Entry<String, Map<String, List<StockQuote>>> entry1 : x.entrySet()) {
+      for (Entry<String, List<StockQuote>> entry2 : entry1.getValue().entrySet()) {
+        for (StockQuote sq : entry2.getValue()) {
+          System.out.println(entry1.getKey() + "." + entry2.getKey() + "=" + sq.getSymbol() + " "
+              + sq.getVolume() + " " + sq.getValue());
+        }
+      }
+    }
 
-		System.out.println("\nPrinting the stockQuotes");
+    // write to a csv file
+    NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
-		result = result.stream().filter(e -> e.getClose().compareTo(BigDecimal.ZERO) != 0).collect(Collectors.toList());
+    System.out.println("\nVolume Summary");
+    result.stream().filter(e -> !Objects.isNull(e.getVolume()))
+        .collect(Collectors.groupingBy(StockQuote::getSector,
+            Collectors.reducing(BigDecimal.ZERO, StockQuote::getVolume, BigDecimal::add)))
+        .forEach((subSector, subSectorTotal) -> System.out
+            .println(subSector + " " + formatter.format(subSectorTotal)));
 
-		CsvStockWriter csvStockWriter = new CsvStockWriter();
-		csvStockWriter.write(date, result);
-	}
+    System.out.println("\nValue Summary");
+    result.stream().filter(e -> !Objects.isNull(e.getValue()))
+        .collect(Collectors.groupingBy(StockQuote::getSector,
+            Collectors.reducing(BigDecimal.ZERO, StockQuote::getValue, BigDecimal::add)))
+        .forEach((subSector, subSectorTotal) -> System.out
+            .println(subSector + " " + formatter.format(subSectorTotal)));
+
+    System.out.println("\nPrinting the stockQuotes");
+
+    result = result.stream().filter(e -> e.getClose().compareTo(BigDecimal.ZERO) != 0).collect(Collectors.toList());
+
+    CsvStockWriter csvStockWriter = new CsvStockWriter();
+    csvStockWriter.write(date, result);
+  }
 }
