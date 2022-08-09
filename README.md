@@ -1,5 +1,3 @@
-*If you would like to support these tutorials, you can contribute to my [Patreon account](https://patreon.com/czetsuya)
-
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 *I'm selling my Stock Quotes collection from May 2006 up to Mar 2021 for $100.*
